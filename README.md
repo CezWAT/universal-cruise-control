@@ -13,9 +13,9 @@ This project is about to bring cruise control to my Fiat 126p, but basically it 
 Based on the speed sensor, the device regulates PWM signal with PI loop. It tries to keep the vehicle speed as close as possible to the one set with the buttons. What controls the engine is a simple, but "strong" servomotor. In my case it is TiankongRC TD-6620MG (they say it has metal gears, 180 degrees of movement and 20 kg of torque). The servo is attached to gas pedal linkage as it is a simple connection and there are no vibrations on the floor compared to the engine.
 
 # Where is the firmware
-Coming<sup>TM</sup>
+In FW directory. Be aware, that for now it is only a proof of concept made for HW v. 1. There are many functions that I would like to work but I didn't code it yet.
 
-It's bare metal and I started writing it with HW v1, so I have to make some changes (not speaking about other projects).
+It's bare metal and I started writing it with HW v1, so I have to make some changes.
 
 # Changes in HW between versions
 v1:

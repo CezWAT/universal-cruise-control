@@ -1,0 +1,16 @@
+{
+	"folders": [
+		{
+			"path": "."
+		}
+	],
+	"settings": {
+		"files.associations": {
+			"eeprom.h": "c",
+			"main.h": "c",
+			"stm32f10x.h": "c",
+			"printf.h": "c",
+			"timers.h": "c"
+		}
+	}
+}

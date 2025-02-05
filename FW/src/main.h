@@ -24,6 +24,7 @@
 #define UART_BAUD (PCLK/115200)
 #define PULSE_FREQ 56 // @50 it was 44, compensated
 #define PRESCALE_1MHZ 1000000
+#define DOUBLE_CLICK_TIME 300 // in ms
 
 enum speed_reading
 {

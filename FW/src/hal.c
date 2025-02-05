@@ -19,7 +19,40 @@ void set_motor(uint16_t pwm)
 }
 
 
-uint8_t test_button_press(uint8_t gpio)
+uint8_t multiclick_buttons(uint8_t pin)
+{
+	extern uint8_t click_count;
+	extern uint32_t last_click_time;
+
+	if (gpio_read(pin))
+	{
+		if (click_count == 0)
+		{
+			// first click
+			click_count++;
+			last_click_time = g_time_tick;
+		}
+		else if (click_count == 1 && (g_time_tick - last_click_time) <= DOUBLE_CLICK_TIME)
+		{
+			// double click
+			click_count = 0;
+			return 2;
+		}
+	}
+	else
+	{
+		if (click_count == 1 && (g_time_tick - last_click_time) > DOUBLE_CLICK_TIME)
+		{
+			// single click
+			click_count = 0;
+			return 1;
+		}
+	}
+	return 0;
+}
+
+
+uint8_t gpio_read(uint8_t gpio)
 {
 	uint8_t pressed = GPIOA->IDR & (1 << gpio);
 	return pressed;
@@ -81,7 +114,7 @@ static void gpio_init(void)
 	GPIOA->CRL |= GPIO_CRL_CNF4_1;
 
 	// SPD (PA6)
-	// leave as after reset - floating input
+	// floating input - reset state
 
 	// LED (PA5)
 	GPIOA->CRL &=  ~(GPIO_CRL_CNF5_0 | GPIO_CRL_CNF5_1);

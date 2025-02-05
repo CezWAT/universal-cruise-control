@@ -6,7 +6,8 @@ extern volatile uint32_t target_speed;
 extern volatile uint32_t last_speed;
 
 void set_motor(uint16_t pwm);
-uint8_t test_button_press(uint8_t gpio);
+uint8_t multiclick_buttons(uint8_t pin);
+uint8_t gpio_read(uint8_t gpio);
 void watchdog_feed(void);
 void simple_putchar(char message);
 void init(void);

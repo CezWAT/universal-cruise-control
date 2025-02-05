@@ -7,26 +7,27 @@ MCU         : STM32F103C8
 
 // todo
 /*
-[v] przygotowanie "czystego" startu
+[v] "clean" start
 	[V] sysclk
 	[v] GPIO
-	[v] timer odczytu prędkości
+	[v] timer for calculating speed
 	[V] watchdog
 	[V] uart
 	[V] LED
 	
 [ ] PID
-[v] odczyt prędkości
-[ X ] odczyt obrotów silnika
-[V] obsługa przycisku +
-[V] obsługa przycisku -
-[ ] obsługa przycisku CANC
-[ ] obsługa przycisku sprzęgła
-[ ] obsługa przycisku hamulca
-[v] pamięć prędkości w RAM
-[ ] "automatyczne" 50 km/h
-[ ] ustawianie silnikiem przepustnicy
-[ ] zabezpieczenia (obroty silnika > max; wciśnięty na stałe przycisk; timeout pomiaru prędkości)
+[v] speed reading
+[ X ] read RPM
+[?] PWM
+[V] PLUS button working
+[V] MINUS button working
+[ ] CANCEL button working
+[ ] clutch button working
+[ ] break button working
+[v] speed saved in RAM
+[ ] "automatic" 50 km/h
+[ ] setting throttle with el. motor
+[ ] safety (RPM > max; button permanently pressed; speed measurement timeout)
 */
 
 #include "stm32f10x.h"
@@ -41,6 +42,8 @@ volatile uint32_t g_time_tick = LOOP_PERIOD_MS; // overflow for first start to h
 volatile uint32_t last_speed = 0;
 volatile uint32_t target_speed = 0;
 volatile uint8_t g_speed_ready;
+volatile uint8_t click_count = 0;
+volatile uint32_t last_click_time = 0;
 
 int main(void)
 {
@@ -48,9 +51,7 @@ int main(void)
 
 	uint32_t watchdog_timeout = g_time_tick + WATCHDOG_TIMEOUT;
 	uint32_t info_timeout = 0;
-	uint32_t btn_plus_pressed = 0;
 	uint32_t manage_buttons_timeout = 0;
-	uint32_t btn_time_tick = 0;
 	uint8_t cc_enabled = 0;
 	uint32_t speed = 0;
 
@@ -74,7 +75,7 @@ int main(void)
 				printf("target: %u speed: %u  pid %d\r\n", target_speed, speed, pwm_value); // debug	
 				if (speed != target_speed)
 				{
-					set_motor(pwm_value);	
+					set_motor(pwm_value);
 				}
 			}
 			else if (!cc_enabled)
@@ -92,38 +93,30 @@ int main(void)
 		// reaction to buttons
 		if (g_time_tick > manage_buttons_timeout)
 		{
-			btn_time_tick = g_time_tick;
-			
-			if (test_button_press(BUT_CLUTCH) || test_button_press(BUT_BREAK))
+// clutch & break switches
+			if (gpio_read(BUT_CLUTCH) || gpio_read(BUT_BREAK))
 			{
-				set_motor(PI_MIN); // todo nie działa jeśli nie ma sygnału prędkości
+				set_motor(PI_MIN); // todo not working if there is no speed signal
 				cc_enabled = FALSE;
 				printf(" CLUTCH/BREAK \r\n");
 			}
-
-			if (test_button_press(BUT_CANC))
+// cancel
+			if (gpio_read(BUT_CANC))
 			{
-				set_motor(PI_MIN); // todo nie działa jeśli nie ma sygnału prędkości
+				set_motor(PI_MIN); // todo not working if there is no speed signal
 				last_speed = target_speed;
 				cc_enabled = FALSE;
 				printf(" CANC \r\n");
 			}
-
-			if (test_button_press(BUT_PLUS) && !cc_enabled)
+// plus
+			if (multiclick_buttons(BUT_PLUS) == 1 && !cc_enabled)
 			{
 				target_speed = speed++;
-				btn_plus_pressed = 1;
 				cc_enabled = TRUE;
 				printf("++\r\n");
-
-				if (btn_plus_pressed && test_button_press(BUT_PLUS) && g_time_tick >= (btn_time_tick + 50)) // ustaw 50 km/h // TODO
-				{
-					target_speed = 50;
-					printf(" set 50 \r\n");
-					btn_plus_pressed = 0;
-				}
 			}
-			else if (test_button_press(BUT_PLUS) && cc_enabled)
+
+			if (multiclick_buttons(BUT_PLUS) == 1 && cc_enabled)
 			{
 				target_speed++;
 				// target speed clamping
@@ -131,24 +124,27 @@ int main(void)
 				cc_enabled = TRUE;
 				printf("++\r\n");
 			}
-			
-			if (test_button_press(BUT_MINUS))
+
+			if (multiclick_buttons(BUT_PLUS) == 2)
 			{
-				if (test_button_press(BUT_MINUS) && (btn_time_tick + 120 > g_time_tick) 
-					&& (cc_enabled == FALSE)) // todo czas ktory uplynal do poprawy
-				{
-					target_speed = last_speed;
-					cc_enabled = TRUE;
-				}
-				else
-				{
-					target_speed--;
-					// target speed clamping
-					target_speed < MINIMUM_SPEED ? target_speed = MINIMUM_SPEED : FALSE;
-				}
-				printf("--\r\n");
+				target_speed = 50;
+				printf(" set 50 \r\n");
+			}
+// minus
+			if (gpio_read(BUT_MINUS) == 1 && !cc_enabled)
+			{
+				target_speed = last_speed;
+				cc_enabled = TRUE;
+				printf(" set last speed \r\n");
 			}
 
+			if (gpio_read(BUT_MINUS) == 1 && cc_enabled)
+			{
+				target_speed--;
+				// target speed clamping
+				target_speed < MINIMUM_SPEED ? target_speed = MINIMUM_SPEED : FALSE;
+				printf("--\r\n");
+			}
 			manage_buttons_timeout = g_time_tick + BTN_MANAGE_TIMEOUT;
 		}
 	}

@@ -32,10 +32,6 @@ uint16_t calculate_pid(uint16_t current_value, uint16_t set_point)
 		// i_out limits
 		i_out < PI_MIN ? i_out = PI_MIN : FALSE;
 		i_out > PI_MAX ? i_out = PI_MAX : FALSE;
-		
-		// i_out limits
-		i_out < PI_MIN ? i_out = PI_MIN : FALSE;
-		i_out > PI_MAX ? i_out = PI_MAX : FALSE;
 
 		pid_output = p_out + i_out;
 		// PI regulator end
